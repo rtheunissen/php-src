@@ -154,12 +154,12 @@ static int spl_ptr_heap_zval_max_cmp(zval *a, zval *b, zval *object) { /* {{{ */
 				/* exception or call failure */
 				return 0;
 			}
-			return lval > 0 ? 1 : (lval < 0 ? -1 : 0);
+			return ZEND_SIGNUM(lval);
 		}
 	}
 
 	compare_function(&result, a, b);
-	return (int)Z_LVAL(result);
+	return Z_LVAL(result);
 }
 /* }}} */
 
@@ -178,12 +178,12 @@ static int spl_ptr_heap_zval_min_cmp(zval *a, zval *b, zval *object) { /* {{{ */
 				/* exception or call failure */
 				return 0;
 			}
-			return lval > 0 ? 1 : (lval < 0 ? -1 : 0);
+			return ZEND_SIGNUM(lval);
 		}
 	}
 
 	compare_function(&result, b, a);
-	return (int)Z_LVAL(result);
+	return Z_LVAL(result);
 }
 /* }}} */
 
@@ -209,12 +209,12 @@ static int spl_ptr_pqueue_zval_cmp(zval *a, zval *b, zval *object) { /* {{{ */
 				/* exception or call failure */
 				return 0;
 			}
-			return lval > 0 ? 1 : (lval < 0 ? -1 : 0);
+			return ZEND_SIGNUM(lval);
 		}
 	}
 
 	compare_function(&result, a_priority_p, b_priority_p);
-	return (int)Z_LVAL(result);
+	return Z_LVAL(result);
 }
 /* }}} */
 

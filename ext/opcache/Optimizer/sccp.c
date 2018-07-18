@@ -665,37 +665,33 @@ static inline void ct_eval_type_check(zval *result, uint32_t type_mask, zval *op
 
 static inline int ct_eval_in_array(zval *result, uint32_t extended_value, zval *op1, zval *op2) {
 	HashTable *ht;
-	zend_bool res;
-
+	ZVAL_BOOL(result, 0);
+	
 	if (Z_TYPE_P(op2) != IS_ARRAY) {
 		return FAILURE;
 	}
+
 	ht = Z_ARRVAL_P(op2);
 	if (EXPECTED(Z_TYPE_P(op1) == IS_STRING)) {
-		res = zend_hash_exists(ht, Z_STR_P(op1));
+		ZVAL_BOOL(result, zend_hash_exists(ht, Z_STR_P(op1)));
 	} else if (extended_value) {
 		if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
-			res = zend_hash_index_exists(ht, Z_LVAL_P(op1));
-		} else {
-			res = 0;
+			ZVAL_BOOL(result, zend_hash_index_exists(ht, Z_LVAL_P(op1)));
 		}
 	} else if (Z_TYPE_P(op1) <= IS_FALSE) {
-		res = zend_hash_exists(ht, ZSTR_EMPTY_ALLOC());
+		ZVAL_BOOL(result, zend_hash_exists(ht, ZSTR_EMPTY_ALLOC()));
 	} else {
 		zend_string *key;
-		zval key_tmp, result_tmp;
+		zval key_tmp;
 
-		res = 0;
 		ZEND_HASH_FOREACH_STR_KEY(ht, key) {
 			ZVAL_STR(&key_tmp, key);
-			compare_function(&result_tmp, op1, &key_tmp);
-			if (Z_LVAL(result_tmp) == 0) {
-				res = 1;
+			is_equal_function(result, op1, &key_tmp);
+			if (Z_TYPE_P(result) == IS_TRUE) {
 				break;
 			}
 		} ZEND_HASH_FOREACH_END();
 	}
-	ZVAL_BOOL(result, res);
 	return SUCCESS;
 }
 

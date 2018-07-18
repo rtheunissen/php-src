@@ -667,7 +667,7 @@ static zend_object *date_object_clone_timezone(zval *this_ptr);
 static zend_object *date_object_clone_interval(zval *this_ptr);
 static zend_object *date_object_clone_period(zval *this_ptr);
 
-static int date_object_compare_date(zval *d1, zval *d2);
+static int date_object_compare(zval *d1, zval *d2, int ctx);
 static HashTable *date_object_get_gc(zval *object, zval **table, int *n);
 static HashTable *date_object_get_properties(zval *object);
 static HashTable *date_object_get_gc_interval(zval *object, zval **table, int *n);
@@ -2124,7 +2124,8 @@ static void date_register_classes(void) /* {{{ */
 	date_object_handlers_date.offset = XtOffsetOf(php_date_obj, std);
 	date_object_handlers_date.free_obj = date_object_free_storage_date;
 	date_object_handlers_date.clone_obj = date_object_clone_date;
-	date_object_handlers_date.compare_objects = date_object_compare_date;
+	date_object_handlers_date.compare_objects = date_object_compare;
+	date_object_handlers_date.compare = NULL;
 	date_object_handlers_date.get_properties = date_object_get_properties;
 	date_object_handlers_date.get_gc = date_object_get_gc;
 	zend_class_implements(date_ce_date, 1, date_ce_interface);
@@ -2134,7 +2135,8 @@ static void date_register_classes(void) /* {{{ */
 	date_ce_immutable = zend_register_internal_class_ex(&ce_immutable, NULL);
 	memcpy(&date_object_handlers_immutable, &std_object_handlers, sizeof(zend_object_handlers));
 	date_object_handlers_immutable.clone_obj = date_object_clone_date;
-	date_object_handlers_immutable.compare_objects = date_object_compare_date;
+	date_object_handlers_immutable.compare_objects = date_object_compare;
+	date_object_handlers_immutable.compare = NULL;
 	date_object_handlers_immutable.get_properties = date_object_get_properties;
 	date_object_handlers_immutable.get_gc = date_object_get_gc;
 	zend_class_implements(date_ce_immutable, 1, date_ce_interface);
@@ -2242,23 +2244,22 @@ static void date_clone_immutable(zval *object, zval *new_object) /* {{{ */
 	ZVAL_OBJ(new_object, date_object_clone_date(object));
 } /* }}} */
 
-static int date_object_compare_date(zval *d1, zval *d2) /* {{{ */
+static int date_object_compare(zval *o1, zval *o2, int ctx) /* {{{ */
 {
-	php_date_obj *o1 = Z_PHPDATE_P(d1);
-	php_date_obj *o2 = Z_PHPDATE_P(d2);
+	php_date_obj *d1 = Z_PHPDATE_P(o1);
+	php_date_obj *d2 = Z_PHPDATE_P(o2);
 
-	if (!o1->time || !o2->time) {
+	if (!d1->time || !d2->time) {
 		php_error_docref(NULL, E_WARNING, "Trying to compare an incomplete DateTime or DateTimeImmutable object");
 		return 1;
 	}
-	if (!o1->time->sse_uptodate) {
-		timelib_update_ts(o1->time, o1->time->tz_info);
+	if (!d1->time->sse_uptodate) {
+		timelib_update_ts(d1->time, d1->time->tz_info);
 	}
-	if (!o2->time->sse_uptodate) {
-		timelib_update_ts(o2->time, o2->time->tz_info);
+	if (!d2->time->sse_uptodate) {
+		timelib_update_ts(d2->time, d2->time->tz_info);
 	}
-
-	return timelib_time_compare(o1->time, o2->time);
+	return timelib_time_compare(d1->time, d2->time);
 } /* }}} */
 
 static HashTable *date_object_get_gc(zval *object, zval **table, int *n) /* {{{ */

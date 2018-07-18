@@ -344,30 +344,46 @@ static HashTable *spl_object_storage_get_gc(zval *obj, zval **table, int *n) /* 
 }
 /* }}} */
 
-static int spl_object_storage_compare_info(zval *e1, zval *e2) /* {{{ */
+static int spl_object_storage_compare_info_eq(zval *e1, zval *e2) /* {{{ */
 {
+	zval result;
 	spl_SplObjectStorageElement *s1 = (spl_SplObjectStorageElement*)Z_PTR_P(e1);
 	spl_SplObjectStorageElement *s2 = (spl_SplObjectStorageElement*)Z_PTR_P(e2);
-	zval result;
 
-	if (compare_function(&result, &s1->inf, &s2->inf) == FAILURE) {
-		return 1;
-	}
-
-	return Z_LVAL(result) > 0 ? 1 : (Z_LVAL(result) < 0 ? -1 : 0);
+	return zend_is_equal(&s1->inf, &s2->inf) ? 0 : 1;
 }
 /* }}} */
 
-static int spl_object_storage_compare_objects(zval *o1, zval *o2) /* {{{ */
+static int spl_object_storage_compare_info_ord(zval *e1, zval *e2) /* {{{ */
 {
-	zend_object *zo1 = (zend_object *)Z_OBJ_P(o1);
-	zend_object *zo2 = (zend_object *)Z_OBJ_P(o2);
+	zval result;
+	spl_SplObjectStorageElement *s1 = (spl_SplObjectStorageElement*)Z_PTR_P(e1);
+	spl_SplObjectStorageElement *s2 = (spl_SplObjectStorageElement*)Z_PTR_P(e2);
 
-	if (zo1->ce != spl_ce_SplObjectStorage || zo2->ce != spl_ce_SplObjectStorage) {
-		return 1;
+	if (compare_function(&result, &s1->inf, &s2->inf) == SUCCESS) {
+		return Z_LVAL(result);
 	}
 
-	return zend_hash_compare(&(Z_SPLOBJSTORAGE_P(o1))->storage, &(Z_SPLOBJSTORAGE_P(o2))->storage, (compare_func_t)spl_object_storage_compare_info, 0);
+	return 1;
+}
+/* }}} */
+
+static int spl_object_storage_compare(zval *result, zval *op1, zval *op2, int ctx) /* {{{ */
+{	
+/* Only support comparison against another date object */
+	if (Z_TYPE_P(op2) == IS_OBJECT && Z_OBJCE_P(op1) == Z_OBJCE_P(op2)) {
+		HashTable *h1 = &(Z_SPLOBJSTORAGE_P(op1))->storage;
+		HashTable *h2 = &(Z_SPLOBJSTORAGE_P(op2))->storage;
+
+		if (ctx == ZEND_COMPARE_ORD) {
+			ZVAL_LONG(result, zend_hash_compare(h1, h2, (compare_func_t) spl_object_storage_compare_info_ord, 0));
+		} else {
+			ZVAL_LONG(result, zend_hash_compare(h1, h2, (compare_func_t) spl_object_storage_compare_info_eq, 0));
+		}
+		return SUCCESS;
+	}
+
+	return FAILURE;
 }
 /* }}} */
 
@@ -1247,7 +1263,7 @@ PHP_MINIT_FUNCTION(spl_observer)
 
 	spl_handler_SplObjectStorage.offset          = XtOffsetOf(spl_SplObjectStorage, std);
 	spl_handler_SplObjectStorage.get_debug_info  = spl_object_storage_debug_info;
-	spl_handler_SplObjectStorage.compare_objects = spl_object_storage_compare_objects;
+	spl_handler_SplObjectStorage.compare         = spl_object_storage_compare;
 	spl_handler_SplObjectStorage.clone_obj       = spl_object_storage_clone;
 	spl_handler_SplObjectStorage.get_gc          = spl_object_storage_get_gc;
 	spl_handler_SplObjectStorage.dtor_obj        = zend_objects_destroy_object;

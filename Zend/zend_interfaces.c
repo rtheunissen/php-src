@@ -29,6 +29,8 @@ ZEND_API zend_class_entry *zend_ce_iterator;
 ZEND_API zend_class_entry *zend_ce_arrayaccess;
 ZEND_API zend_class_entry *zend_ce_serializable;
 ZEND_API zend_class_entry *zend_ce_countable;
+ZEND_API zend_class_entry *zend_ce_comparable;
+ZEND_API zend_class_entry *zend_ce_equatable;
 
 /* {{{ zend_call_method
  Only returns the returned zval if retval_ptr != NULL */
@@ -504,6 +506,20 @@ static int zend_implement_countable(zend_class_entry *interface, zend_class_entr
 }
 /* }}}*/
 
+/* {{{ zend_implement_comparable */
+static int zend_implement_comparable(zend_class_entry *interface, zend_class_entry *class_type)
+{
+	return SUCCESS;
+}
+/* }}}*/
+
+/* {{{ zend_implement_equatable */
+static int zend_implement_equatable(zend_class_entry *interface, zend_class_entry *class_type)
+{
+	return SUCCESS;
+}
+/* }}}*/
+
 /* {{{ function tables */
 static const zend_function_entry zend_funcs_aggregate[] = {
 	ZEND_ABSTRACT_ME(iterator, getIterator, NULL)
@@ -561,6 +577,24 @@ static const zend_function_entry zend_funcs_countable[] = {
 };
 /* }}} */
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_comparable_compareTo, 0, 1, IS_LONG, 1)
+	ZEND_ARG_INFO(0, other)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry zend_funcs_comparable[] = {
+	ZEND_ABSTRACT_ME(comparable, compareTo, arginfo_comparable_compareTo)
+	ZEND_FE_END
+};
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_equatable_equals, 0, 1, _IS_BOOL, 0)
+	ZEND_ARG_INFO(0, other)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry zend_funcs_equatable[] = {
+	ZEND_ABSTRACT_ME(equatable, equals, arginfo_equatable_equals)
+	ZEND_FE_END
+};
+
 /* {{{ zend_register_interfaces */
 ZEND_API void zend_register_interfaces(void)
 {
@@ -577,6 +611,10 @@ ZEND_API void zend_register_interfaces(void)
 	REGISTER_MAGIC_INTERFACE(serializable, Serializable);
 
 	REGISTER_MAGIC_INTERFACE(countable, Countable);
+
+	REGISTER_MAGIC_INTERFACE(equatable, Equatable);
+	REGISTER_MAGIC_INTERFACE(comparable, Comparable);
+	REGISTER_MAGIC_IMPLEMENT(comparable, equatable);
 }
 /* }}} */
 

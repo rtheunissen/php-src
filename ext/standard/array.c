@@ -156,7 +156,7 @@ static int php_array_key_compare(const void *a, const void *b) /* {{{ */
 			if (t == IS_LONG) {
 				/* pass */
 			} else if (t == IS_DOUBLE) {
-				return ZEND_NORMALIZE_BOOL((double)l1 - d);
+				return ZEND_SIGNUM((double)l1 - d);
 			} else {
 				l2 = 0;
 			}
@@ -170,13 +170,13 @@ static int php_array_key_compare(const void *a, const void *b) /* {{{ */
 			if (t == IS_LONG) {
 				/* pass */
 			} else if (t == IS_DOUBLE) {
-				return ZEND_NORMALIZE_BOOL(d - (double)l2);
+				return ZEND_SIGNUM(d - (double)l2);
 			} else {
 				l1 = 0;
 			}
 		}
 	}
-	return l1 > l2 ? 1 : (l1 < l2 ? -1 : 0);
+	return ZEND_COMPARE(l1, l2);
 }
 /* }}} */
 
@@ -205,7 +205,7 @@ static int php_array_key_compare_numeric(const void *a, const void *b) /* {{{ */
 		} else {
 			d2 = (double)(zend_long)s->h;
 		}
-		return ZEND_NORMALIZE_BOOL(d1 - d2);
+		return ZEND_SIGNUM(d1 - d2);
 	}
 }
 /* }}} */
@@ -386,15 +386,16 @@ static int php_array_data_compare(const void *a, const void *b) /* {{{ */
 	if (UNEXPECTED(Z_TYPE_P(first) == IS_INDIRECT)) {
 		first = Z_INDIRECT_P(first);
 	}
+
 	if (UNEXPECTED(Z_TYPE_P(second) == IS_INDIRECT)) {
 		second = Z_INDIRECT_P(second);
 	}
-	if (compare_function(&result, first, second) == FAILURE) {
-		return 0;
+
+	if (compare_function(&result, first, second) == SUCCESS) {
+		return Z_LVAL(result);
 	}
 
-	ZEND_ASSERT(Z_TYPE(result) == IS_LONG);
-	return ZEND_NORMALIZE_BOOL(Z_LVAL(result));
+	return 0;
 }
 /* }}} */
 

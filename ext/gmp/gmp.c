@@ -28,6 +28,7 @@
 #include "ext/standard/php_var.h"
 #include "zend_smart_str_public.h"
 #include "zend_exceptions.h"
+#include "zend_interfaces.h"
 
 #include <gmp.h>
 
@@ -556,7 +557,7 @@ static int gmp_do_operation(zend_uchar opcode, zval *result, zval *op1, zval *op
 }
 /* }}} */
 
-static int gmp_compare(zval *result, zval *op1, zval *op2) /* {{{ */
+static int gmp_compare(zval *result, zval *op1, zval *op2, int ctx) /* {{{ */
 {
 	gmp_cmp(result, op1, op2);
 	if (Z_TYPE_P(result) == IS_FALSE) {
@@ -652,12 +653,49 @@ static ZEND_GINIT_FUNCTION(gmp)
 }
 /* }}} */
 
+PHP_METHOD(GMP, compareTo)
+{
+	zval *other;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "z", &other) == FAILURE) {
+		return;
+	}
+
+	gmp_cmp(return_value, getThis(), other);
+}
+
+PHP_METHOD(GMP, equals)
+{
+	zval *other;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "z", &other) == FAILURE) {
+		return;
+	}
+
+	gmp_cmp(return_value, getThis(), other);
+	RETURN_BOOL(Z_LVAL_P(return_value) == 0);
+}
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_gmp_compareTo, 0, 1, IS_LONG, 1)
+	ZEND_ARG_INFO(0, other)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_gmp_equals, 0, 1, _IS_BOOL, 0)
+	ZEND_ARG_INFO(0, other)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry gmp_methods[] = {
+	PHP_ME(GMP, compareTo, arginfo_gmp_compareTo, ZEND_ACC_PUBLIC)
+	PHP_ME(GMP, equals, arginfo_gmp_equals, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
+
 /* {{{ ZEND_MINIT_FUNCTION
  */
 ZEND_MINIT_FUNCTION(gmp)
 {
 	zend_class_entry tmp_ce;
-	INIT_CLASS_ENTRY(tmp_ce, "GMP", NULL);
+	INIT_CLASS_ENTRY(tmp_ce, "GMP", gmp_methods);
 	gmp_ce = zend_register_internal_class(&tmp_ce);
 	gmp_ce->create_object = gmp_create_object;
 	gmp_ce->serialize = gmp_serialize;
@@ -671,6 +709,8 @@ ZEND_MINIT_FUNCTION(gmp)
 	gmp_object_handlers.clone_obj = gmp_clone_obj;
 	gmp_object_handlers.do_operation = gmp_do_operation;
 	gmp_object_handlers.compare = gmp_compare;
+
+	zend_class_implements(gmp_ce, 1, zend_ce_comparable);
 
 	REGISTER_LONG_CONSTANT("GMP_ROUND_ZERO", GMP_ROUND_ZERO, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("GMP_ROUND_PLUSINF", GMP_ROUND_PLUSINF, CONST_CS | CONST_PERSISTENT);

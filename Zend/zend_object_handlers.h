@@ -112,8 +112,10 @@ typedef zend_object* (*zend_object_clone_obj_t)(zval *object);
  * Must be defined and must return a non-NULL value. */
 typedef zend_string *(*zend_object_get_class_name_t)(const zend_object *object);
 
-typedef int (*zend_object_compare_t)(zval *object1, zval *object2);
-typedef int (*zend_object_compare_zvals_t)(zval *resul, zval *op1, zval *op2);
+/* Comparison
+ */
+typedef int (*zend_object_compare_zvals_t)(zval *result, zval *op1, zval *op2, int ctx);
+typedef int (*zend_object_compare_t)(zval *o1, zval *o2, int ctx);
 
 /* Cast an object to some other type.
  * readobj and retval must point to distinct zvals.
@@ -161,7 +163,7 @@ struct _zend_object_handlers {
 	zend_object_get_closure_t				get_closure;
 	zend_object_get_gc_t					get_gc;
 	zend_object_do_operation_t				do_operation;
-	zend_object_compare_zvals_t				compare;
+	zend_object_compare_zvals_t		        compare;
 };
 
 BEGIN_EXTERN_C()
@@ -193,7 +195,8 @@ ZEND_API int zend_std_has_dimension(zval *object, zval *offset, int check_empty)
 ZEND_API void zend_std_unset_dimension(zval *object, zval *offset);
 ZEND_API zend_function *zend_std_get_method(zend_object **obj_ptr, zend_string *method_name, const zval *key);
 ZEND_API zend_string *zend_std_get_class_name(const zend_object *zobj);
-ZEND_API int zend_std_compare_objects(zval *o1, zval *o2);
+ZEND_API int zend_std_compare_objects(zval *o1, zval *o2, int ctx);
+ZEND_API int zend_std_compare(zval *result, zval *op1, zval *op2, int ctx);
 ZEND_API int zend_std_get_closure(zval *obj, zend_class_entry **ce_ptr, zend_function **fptr_ptr, zend_object **obj_ptr);
 ZEND_API void rebuild_object_properties(zend_object *zobj);
 

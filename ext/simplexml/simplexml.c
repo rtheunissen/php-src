@@ -1248,31 +1248,35 @@ static HashTable *sxe_get_properties(zval *object) /* {{{ */
 }
 /* }}} */
 
-static HashTable * sxe_get_debug_info(zval *object, int *is_temp) /* {{{ */
+static HashTable *sxe_get_debug_info(zval *object, int *is_temp) /* {{{ */
 {
 	*is_temp = 1;
 	return sxe_get_prop_hash(object, 1);
 }
 /* }}} */
 
-static int sxe_objects_compare(zval *object1, zval *object2) /* {{{ */
+static int sxe_objects_compare(zval *result, zval *obj, zval *op, int ctx) /* {{{ */
 {
-	php_sxe_object *sxe1;
-	php_sxe_object *sxe2;
+	/* Only support comparison against another simplexml object */
+	if (Z_TYPE_P(op) == IS_OBJECT && Z_OBJCE_P(obj) == Z_OBJCE_P(op)) {
+		php_sxe_object *sxe1;
+		php_sxe_object *sxe2;
 
-	sxe1 = Z_SXEOBJ_P(object1);
-	sxe2 = Z_SXEOBJ_P(object2);
+		sxe1 = Z_SXEOBJ_P(obj);
+		sxe2 = Z_SXEOBJ_P(op);
 
-	if (sxe1->node == NULL) {
-		if (sxe2->node) {
-			return 1;
-		} else if (sxe1->document->ptr == sxe2->document->ptr) {
-			return 0;
+		if (sxe1->node == NULL) {
+			if (sxe2->node || sxe1->document->ptr != sxe2->document->ptr) {
+				ZVAL_LONG(result, 1);
+			} else {
+				ZVAL_LONG(result, 0);
+			}
+		} else {
+			ZVAL_LONG(result, !(sxe1->node == sxe2->node));
 		}
-	} else {
-		return !(sxe1->node == sxe2->node);
+		return SUCCESS;
 	}
-	return 1;
+	return FAILURE;
 }
 /* }}} */
 
@@ -2704,7 +2708,7 @@ PHP_MINIT_FUNCTION(simplexml)
 	sxe_object_handlers.has_dimension = sxe_dimension_exists;
 	sxe_object_handlers.unset_dimension = sxe_dimension_delete;
 	sxe_object_handlers.get_properties = sxe_get_properties;
-	sxe_object_handlers.compare_objects = sxe_objects_compare;
+	sxe_object_handlers.compare = sxe_objects_compare;
 	sxe_object_handlers.cast_object = sxe_object_cast;
 	sxe_object_handlers.count_elements = sxe_count_elements;
 	sxe_object_handlers.get_debug_info = sxe_get_debug_info;

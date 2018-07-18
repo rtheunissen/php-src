@@ -12,6 +12,13 @@ var_dump($arr);
 var_dump(min(gmp_init(3), 4));
 var_dump(max(gmp_init(3), 4));
 
+var_dump(gmp_init(0) instanceof Comparable);
+var_dump(gmp_init(0)->compareTo(-2));
+var_dump(gmp_init(0)->compareTo(0));
+var_dump(gmp_init(0)->compareTo(2));
+var_dump(gmp_init(0)->equals(-2));
+var_dump(gmp_init(0)->equals(0));
+var_dump(gmp_init(0)->equals(2));
 ?>
 --EXPECT--
 array(4) {
@@ -35,3 +42,10 @@ object(GMP)#3 (1) {
   string(1) "3"
 }
 int(4)
+bool(true)
+int(1)
+int(0)
+int(-1)
+bool(false)
+bool(true)
+bool(false)

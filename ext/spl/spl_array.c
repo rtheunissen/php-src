@@ -929,26 +929,28 @@ static void spl_array_unset_property(zval *object, zval *member, void **cache_sl
 	zend_std_unset_property(object, member, cache_slot);
 } /* }}} */
 
-static int spl_array_compare_objects(zval *o1, zval *o2) /* {{{ */
+static int spl_array_compare_objects(zval *result, zval *obj, zval *op, int ctx) /* {{{ */
 {
-	HashTable			*ht1,
-						*ht2;
-	spl_array_object	*intern1,
-						*intern2;
-	int					result	= 0;
+	/* Only support comparison against another array object */
+	if (Z_TYPE_P(op) == IS_OBJECT && Z_OBJCE_P(obj) == Z_OBJCE_P(op)) {
+		spl_array_object *intern1 = Z_SPLARRAY_P(obj);
+		spl_array_object *intern2 = Z_SPLARRAY_P(op);
 
-	intern1	= Z_SPLARRAY_P(o1);
-	intern2	= Z_SPLARRAY_P(o2);
-	ht1		= spl_array_get_hash_table(intern1);
-	ht2		= spl_array_get_hash_table(intern2);
+		HashTable *ht1 = spl_array_get_hash_table(intern1);
+		HashTable *ht2 = spl_array_get_hash_table(intern2);
+		
+		int cmp = zend_compare_symbol_tables(ht1, ht2, ctx);
 
-	result = zend_compare_symbol_tables(ht1, ht2);
-	/* if we just compared std.properties, don't do it again */
-	if (result == 0 &&
-			!(ht1 == intern1->std.properties && ht2 == intern2->std.properties)) {
-		result = zend_std_compare_objects(o1, o2);
+		/* if we just compared std.properties, don't do it again */
+		if (cmp == 0 &&	!(ht1 == intern1->std.properties && ht2 == intern2->std.properties)) {
+			cmp = zend_compare_object_properties(obj, op, ctx);
+		}
+
+		ZVAL_LONG(result, cmp);
+		return SUCCESS;
 	}
-	return result;
+
+	return FAILURE;
 } /* }}} */
 
 static int spl_array_skip_protected(spl_array_object *intern, HashTable *aht) /* {{{ */
@@ -2024,7 +2026,7 @@ PHP_MINIT_FUNCTION(spl_array)
 	spl_handler_ArrayObject.has_property = spl_array_has_property;
 	spl_handler_ArrayObject.unset_property = spl_array_unset_property;
 
-	spl_handler_ArrayObject.compare_objects = spl_array_compare_objects;
+	spl_handler_ArrayObject.compare = spl_array_compare_objects;
 	spl_handler_ArrayObject.dtor_obj = zend_objects_destroy_object;
 	spl_handler_ArrayObject.free_obj = spl_array_object_free_storage;
 

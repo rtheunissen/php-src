@@ -32,6 +32,8 @@ extern ZEND_API zend_class_entry *zend_ce_iterator;
 extern ZEND_API zend_class_entry *zend_ce_arrayaccess;
 extern ZEND_API zend_class_entry *zend_ce_serializable;
 extern ZEND_API zend_class_entry *zend_ce_countable;
+extern ZEND_API zend_class_entry *zend_ce_comparable;
+extern ZEND_API zend_class_entry *zend_ce_equatable;
 
 typedef struct _zend_user_iterator {
 	zend_object_iterator     it;

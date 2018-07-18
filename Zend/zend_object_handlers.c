@@ -1534,75 +1534,45 @@ ZEND_API zend_function *zend_std_get_constructor(zend_object *zobj) /* {{{ */
 }
 /* }}} */
 
-ZEND_API int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
+ZEND_API int zend_std_compare_objects(zval *o1, zval *o2, int ctx) /* {{{ */
 {
-	zend_object *zobj1, *zobj2;
+	return zend_compare_object_properties(o1, o2, ctx);
+}
+/* }}} */
 
-	zobj1 = Z_OBJ_P(o1);
-	zobj2 = Z_OBJ_P(o2);
-
-	if (zobj1 == zobj2) {
-		return 0; /* the same object */
-	}
-	if (zobj1->ce != zobj2->ce) {
-		return 1; /* different classes */
-	}
-	if (!zobj1->properties && !zobj2->properties) {
-		zval *p1, *p2, *end;
-
-		if (!zobj1->ce->default_properties_count) {
-			return 0;
-		}
-		p1 = zobj1->properties_table;
-		p2 = zobj2->properties_table;
-		end = p1 + zobj1->ce->default_properties_count;
-
-		/* It's enough to protect only one of the objects.
-		 * The second one may be referenced from the first and this may cause
-		 * false recursion detection.
-		 */
-		/* use bitwise OR to make only one conditional jump */
-		if (UNEXPECTED(Z_IS_RECURSIVE_P(o1))) {
-			zend_error_noreturn(E_ERROR, "Nesting level too deep - recursive dependency?");
-		}
-		Z_PROTECT_RECURSION_P(o1);
-		do {
-			if (Z_TYPE_P(p1) != IS_UNDEF) {
-				if (Z_TYPE_P(p2) != IS_UNDEF) {
-					zval result;
-
-					if (compare_function(&result, p1, p2)==FAILURE) {
-						Z_UNPROTECT_RECURSION_P(o1);
-						return 1;
-					}
-					if (Z_LVAL(result) != 0) {
-						Z_UNPROTECT_RECURSION_P(o1);
-						return Z_LVAL(result);
-					}
+ZEND_API int zend_std_compare(zval *result, zval *obj, zval *op, int ctx) /* {{{ */
+{
+	if (ctx == ZEND_COMPARE_ORD) {
+		if (instanceof_function(Z_OBJCE_P(obj), zend_ce_comparable)) {
+			zend_call_method_with_1_params(obj, Z_OBJCE_P(obj), NULL, "compareto", result, op);
+			if (EXPECTED(Z_TYPE_P(result) == IS_LONG)) {
+				return SUCCESS;
+			}
+			/* User can return NULL to indicate that ordering is undefined. */
+			if (Z_TYPE_P(result) == IS_NULL) {
+				if (Z_TYPE_P(op) == IS_OBJECT) {
+					zend_error(E_NOTICE, "Object of class %s could not be compared to object of class %s",
+						ZSTR_VAL(Z_OBJCE_P(obj)->name),
+						ZSTR_VAL(Z_OBJCE_P(op)->name));
 				} else {
-					Z_UNPROTECT_RECURSION_P(o1);
-					return 1;
-				}
-			} else {
-				if (Z_TYPE_P(p2) != IS_UNDEF) {
-					Z_UNPROTECT_RECURSION_P(o1);
-					return 1;
+					zend_error(E_NOTICE, "Object of class %s could not be compared to %s",
+						ZSTR_VAL(Z_OBJCE_P(obj)->name),
+						zend_get_type_by_const(Z_TYPE_P(op)));
 				}
 			}
-			p1++;
-			p2++;
-		} while (p1 != end);
-		Z_UNPROTECT_RECURSION_P(o1);
-		return 0;
+			ZVAL_LONG(result, 1);
+			return SUCCESS;
+		}
 	} else {
-		if (!zobj1->properties) {
-			rebuild_object_properties(zobj1);
+		/* Assume ZEND_COMPARE_EQ */
+		if (instanceof_function(Z_OBJCE_P(obj), zend_ce_equatable)) {
+			zend_call_method_with_1_params(obj, Z_OBJCE_P(obj), NULL, "equals", result, op);
+			ZVAL_LONG(result, Z_TYPE_P(result) != IS_TRUE);
+			return SUCCESS;
 		}
-		if (!zobj2->properties) {
-			rebuild_object_properties(zobj2);
-		}
-		return zend_compare_symbol_tables(zobj1->properties, zobj2->properties);
 	}
+
+	return FAILURE;
 }
 /* }}} */
 
@@ -1845,7 +1815,7 @@ ZEND_API const zend_object_handlers std_object_handlers = {
 	zend_std_get_closure,					/* get_closure */
 	zend_std_get_gc,						/* get_gc */
 	NULL,									/* do_operation */
-	NULL,									/* compare */
+	zend_std_compare,						/* compare */
 };
 
 /*

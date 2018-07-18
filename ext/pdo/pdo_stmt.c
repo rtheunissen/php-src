@@ -2253,9 +2253,10 @@ out:
 	return fbc;
 }
 
-static int dbstmt_compare(zval *object1, zval *object2)
+static int dbstmt_compare(zval *object1, zval *object2, int ctx)
 {
-	return -1;
+	ZVAL_LONG(result, -1);
+	return SUCCESS;
 }
 
 static zend_object *dbstmt_clone_obj(zval *zobject)
@@ -2295,7 +2296,7 @@ void pdo_stmt_init(void)
 	pdo_dbstmt_object_handlers.write_property = dbstmt_prop_write;
 	pdo_dbstmt_object_handlers.unset_property = dbstmt_prop_delete;
 	pdo_dbstmt_object_handlers.get_method = dbstmt_method_get;
-	pdo_dbstmt_object_handlers.compare_objects = dbstmt_compare;
+	pdo_dbstmt_object_handlers.compare = dbstmt_compare;
 	pdo_dbstmt_object_handlers.clone_obj = dbstmt_clone_obj;
 
 	INIT_CLASS_ENTRY(ce, "PDORow", pdo_row_functions);
@@ -2662,7 +2663,7 @@ static zend_string *row_get_classname(const zend_object *object)
 	return zend_string_init("PDORow", sizeof("PDORow") - 1, 0);
 }
 
-static int row_compare(zval *object1, zval *object2)
+static int row_compare(zval *object1, zval *object2, int ctx)
 {
 	return -1;
 }
