@@ -1474,6 +1474,41 @@ ZEND_API zend_function *zend_std_get_constructor(zend_object *zobj) /* {{{ */
 }
 /* }}} */
 
+ZEND_API int zend_std_object_compare_zvals(zval *result, zval *op1, zval *op2) /* {{{ */
+{
+	if (Z_TYPE_P(op1) == IS_OBJECT && instanceof_function(Z_OBJCE_P(op1), zend_ce_comparable)) {
+		zend_call_method_with_1_params(op1, Z_OBJCE_P(op1), NULL, "compareto", result, op2);
+		if (EXPECTED(Z_TYPE_P(result) == IS_LONG)) {
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
+			return SUCCESS;
+		}
+	}
+	if (Z_TYPE_P(op2) == IS_OBJECT && instanceof_function(Z_OBJCE_P(op2), zend_ce_comparable)) {
+		zend_call_method_with_1_params(op2, Z_OBJCE_P(op2), NULL, "compareto", result, op1);
+		if (EXPECTED(Z_TYPE_P(result) == IS_LONG)) {
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)) * -1);
+			return SUCCESS;
+		}
+	}
+	return FAILURE;
+}
+/* }}} */
+ ZEND_API int zend_std_object_equals(zval *result, zval *op1, zval *op2) /* {{{ */
+{
+	if (Z_TYPE_P(op1) == IS_OBJECT && instanceof_function(Z_OBJCE_P(op1), zend_ce_comparable)) {
+		zend_call_method_with_1_params(op1, Z_OBJCE_P(op1), NULL, "equals", result, op2);
+		ZVAL_BOOL(result, zend_is_true(result));
+		return SUCCESS;
+	}
+	if (Z_TYPE_P(op2) == IS_OBJECT && instanceof_function(Z_OBJCE_P(op2), zend_ce_comparable)) {
+		zend_call_method_with_1_params(op2, Z_OBJCE_P(op2), NULL, "equals", result, op1);
+		ZVAL_BOOL(result, zend_is_true(result));
+		return SUCCESS;
+	}
+	return FAILURE;
+}
+/* }}} */
+
 ZEND_API int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 {
 	zend_object *zobj1, *zobj2;
@@ -1809,7 +1844,8 @@ ZEND_API const zend_object_handlers std_object_handlers = {
 	zend_std_get_closure,					/* get_closure */
 	zend_std_get_gc,						/* get_gc */
 	NULL,									/* do_operation */
-	NULL,									/* compare */
+	zend_std_object_compare_zvals,			/* compare */
+	zend_std_object_equals,					/* equals */
 	NULL,									/* get_properties_for */
 };
 

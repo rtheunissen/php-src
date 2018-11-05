@@ -387,6 +387,9 @@ ZEND_API int ZEND_FASTCALL zend_compare_symbol_tables(HashTable *ht1, HashTable 
 ZEND_API int ZEND_FASTCALL zend_compare_arrays(zval *a1, zval *a2);
 ZEND_API int ZEND_FASTCALL zend_compare_objects(zval *o1, zval *o2);
 
+ZEND_API zend_bool ZEND_FASTCALL zend_equal_symbol_tables(HashTable *ht1, HashTable *ht2);
+ZEND_API zend_bool ZEND_FASTCALL zend_equal_arrays(zval *a1, zval *a2);
+
 ZEND_API int ZEND_FASTCALL zend_atoi(const char *str, size_t str_len);
 ZEND_API zend_long ZEND_FASTCALL zend_atol(const char *str, size_t str_len);
 
