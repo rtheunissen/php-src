@@ -39,12 +39,6 @@ if test "$CC" = "gcc" -a "$ac_cv_prog_cc_g" = "yes" -a \
 	CFLAGS=`echo $CFLAGS | sed -e 's/-g//'`
 fi
 
-dnl Hack to work around a Mac OS X cpp problem
-dnl Known versions needing this workaround are 5.3 and 5.4
-if test "$ac_cv_prog_gcc" = "yes" -a "`uname -s`" = "Rhapsody"; then
-        CPPFLAGS="$CPPFLAGS -traditional-cpp"
-fi
-
 AC_CHECK_HEADERS(
 inttypes.h \
 stdint.h \
@@ -490,4 +484,22 @@ int main(int argc, char** argv)
 dnl This is the most probable fallback so we assume yes in case of cross compile.
 if test "$ac_cv_huge_val_nan" = "yes"; then
   AC_DEFINE([HAVE_HUGE_VAL_NAN], 1, [whether HUGE_VAL + -HUGEVAL == NAN])
+fi
+
+dnl
+dnl Check whether __cpuid_count is available
+dnl
+AC_CACHE_CHECK(whether __cpuid_count is available, ac_cv_cpuid_count_available, [
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+  #include <cpuid.h>
+]], [[
+  unsigned eax, ebx, ecx, edx;
+  __cpuid_count(0, 0, eax, ebx, ecx, edx);
+]])], [
+  ac_cv_cpuid_count_available=yes
+], [
+  ac_cv_cpuid_count_available=no
+])])
+if test "$ac_cv_cpuid_count_available" = "yes"; then
+  AC_DEFINE([HAVE_CPUID_COUNT], 1, [whether __cpuid_count is available])
 fi

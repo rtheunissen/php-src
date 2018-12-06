@@ -901,11 +901,6 @@ ZEND_VM_C_LABEL(assign_dim_op_new_array):
 			if (EXPECTED(Z_TYPE_P(container) == IS_ARRAY)) {
 				ZEND_VM_C_GOTO(assign_dim_op_array);
 			}
-		} else if (OP1_TYPE == IS_CV && UNEXPECTED(Z_TYPE_INFO_P(container) == IS_UNDEF)) {
-			container = GET_OP1_UNDEF_CV(container, BP_VAR_RW);
-ZEND_VM_C_LABEL(assign_dim_op_convert_to_array):
-			ZVAL_ARR(container, zend_new_array(8));
-			ZEND_VM_C_GOTO(assign_dim_op_new_array);
 		}
 
 		dim = GET_OP2_ZVAL_PTR(BP_VAR_R);
@@ -915,7 +910,7 @@ ZEND_VM_C_LABEL(assign_dim_op_convert_to_array):
 			if (OP2_TYPE == IS_CONST && Z_EXTRA_P(dim) == ZEND_EXTRA_VALUE) {
 				dim++;
 			}
-			zend_binary_assign_op_obj_dim(container, dim, value, UNEXPECTED(RETURN_VALUE_USED(opline)) ? EX_VAR(opline->result.var) : NULL, binary_op EXECUTE_DATA_CC);
+			zend_binary_assign_op_obj_dim(container, dim, value, binary_op OPLINE_CC EXECUTE_DATA_CC);
 		} else {
 			if (UNEXPECTED(Z_TYPE_P(container) == IS_STRING)) {
 				if (OP2_TYPE == IS_UNUSED) {
@@ -926,7 +921,11 @@ ZEND_VM_C_LABEL(assign_dim_op_convert_to_array):
 				}
 				UNDEF_RESULT();
 			} else if (EXPECTED(Z_TYPE_P(container) <= IS_FALSE)) {
-				ZEND_VM_C_GOTO(assign_dim_op_convert_to_array);
+				if (OP1_TYPE == IS_CV && UNEXPECTED(Z_TYPE_INFO_P(container) == IS_UNDEF)) {
+					container = GET_OP1_UNDEF_CV(container, BP_VAR_RW);
+				}
+				ZVAL_ARR(container, zend_new_array(8));
+				ZEND_VM_C_GOTO(assign_dim_op_new_array);
 			} else {
 				if (UNEXPECTED(OP1_TYPE != IS_VAR || EXPECTED(!Z_ISERROR_P(container)))) {
 					zend_use_scalar_as_array();
@@ -6610,7 +6609,7 @@ ZEND_VM_HANDLER(139, ZEND_DECLARE_CLASS, CONST, ANY)
 	USE_OPLINE
 
 	SAVE_OPLINE();
-	do_bind_class(RT_CONSTANT(opline, opline->op1));
+	do_bind_class(RT_CONSTANT(opline, opline->op1), NULL);
 	ZEND_VM_NEXT_OPCODE_CHECK_EXCEPTION();
 }
 
@@ -6627,7 +6626,7 @@ ZEND_VM_HANDLER(140, ZEND_DECLARE_INHERITED_CLASS, CONST, CONST)
 		ZEND_ASSERT(EG(exception));
 		HANDLE_EXCEPTION();
 	}
-	do_bind_inherited_class(RT_CONSTANT(opline, opline->op1), parent);
+	do_bind_class(RT_CONSTANT(opline, opline->op1), parent);
 	ZEND_VM_NEXT_OPCODE_CHECK_EXCEPTION();
 }
 
@@ -6648,7 +6647,7 @@ ZEND_VM_HANDLER(145, ZEND_DECLARE_INHERITED_CLASS_DELAYED, CONST, CONST)
 			ZEND_ASSERT(EG(exception));
 			HANDLE_EXCEPTION();
 		}
-		do_bind_inherited_class(RT_CONSTANT(opline, opline->op1), parent);
+		do_bind_class(RT_CONSTANT(opline, opline->op1), parent);
 	}
 	ZEND_VM_NEXT_OPCODE_CHECK_EXCEPTION();
 }

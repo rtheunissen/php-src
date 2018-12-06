@@ -177,6 +177,7 @@ rm -f libs/*
 dnl Checks for programs.
 dnl -------------------------------------------------------------------------
 
+PKG_PROG_PKG_CONFIG
 AC_PROG_CC([cc gcc])
 PHP_DETECT_ICC
 PHP_DETECT_SUNCC
@@ -274,7 +275,7 @@ case $host_alias in
   *dgux*)
     CPPFLAGS="$CPPFLAGS -D_BSD_TIMEOFDAY_FLAVOR"
     ;;
-  *darwin*|*rhapsody*)
+  *darwin*)
     if test -n "$GCC"; then
       PHP_CHECK_GCC_ARG(-no-cpp-precomp, gcc_no_cpp_precomp=yes)
       if test "$gcc_no_cpp_precomp" = "yes"; then

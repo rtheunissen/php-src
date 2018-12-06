@@ -1121,7 +1121,7 @@ PHP_METHOD(Phar, __construct)
 	zend_long format = 0;
 	phar_archive_object *phar_obj;
 	phar_archive_data   *phar_data;
-	zval *zobj = getThis(), arg1, arg2;
+	zval *zobj = ZEND_THIS, arg1, arg2;
 
 	phar_obj = (phar_archive_object*)((char*)Z_OBJ_P(zobj) - Z_OBJ_P(zobj)->handlers->offset);
 
@@ -1357,7 +1357,7 @@ PHP_METHOD(Phar, unlinkArchive)
 /* }}} */
 
 #define PHAR_ARCHIVE_OBJECT() \
-	zval *zobj = getThis(); \
+	zval *zobj = ZEND_THIS; \
 	phar_archive_object *phar_obj = (phar_archive_object*)((char*)Z_OBJ_P(zobj) - Z_OBJ_P(zobj)->handlers->offset); \
 	if (!phar_obj->archive) { \
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, \
@@ -1370,7 +1370,7 @@ PHP_METHOD(Phar, unlinkArchive)
  */
 PHP_METHOD(Phar, __destruct)
 {
-	zval *zobj = getThis();
+	zval *zobj = ZEND_THIS;
 	phar_archive_object *phar_obj = (phar_archive_object*)((char*)Z_OBJ_P(zobj) - Z_OBJ_P(zobj)->handlers->offset);
 
 	if (phar_obj->archive && phar_obj->archive->is_persistent) {
@@ -3614,10 +3614,11 @@ static void phar_add_file(phar_archive_data **pphar, char *filename, size_t file
 	char *error;
 	size_t contents_len;
 	phar_entry_data *data;
-	php_stream *contents_file;
+	php_stream *contents_file = NULL;
+	php_stream_statbuf ssb;
 
 	if (filename_len >= sizeof(".phar")-1) {
-		start_pos = ('/' == filename[0] ? 1 : 0); /* account for any leading slash: multiple-leads handled elsewhere */
+		start_pos = '/' == filename[0]; /* account for any leading slash: multiple-leads handled elsewhere */
 		if (!memcmp(&filename[start_pos], ".phar", sizeof(".phar")-1) && (filename[start_pos+5] == '/' || filename[start_pos+5] == '\\' || filename[start_pos+5] == '\0')) {
 			zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "Cannot create any files in magic \".phar\" directory");
 			return;
@@ -3651,8 +3652,18 @@ static void phar_add_file(phar_archive_data **pphar, char *filename, size_t file
 				}
 				php_stream_copy_to_stream_ex(contents_file, data->fp, PHP_STREAM_COPY_ALL, &contents_len);
 			}
-
 			data->internal_file->compressed_filesize = data->internal_file->uncompressed_filesize = contents_len;
+		}
+
+		if (contents_file != NULL && php_stream_stat(contents_file, &ssb) != -1) {
+			data->internal_file->flags = ssb.sb.st_mode & PHAR_ENT_PERM_MASK ;
+		} else {
+#ifndef _WIN32
+			mode_t mask;
+			mask = umask(0);
+			umask(mask);
+			data->internal_file->flags &= ~mask;
+#endif
 		}
 
 		/* check for copy-on-write */
@@ -4421,7 +4432,7 @@ PHP_METHOD(PharFileInfo, __construct)
 	phar_entry_object *entry_obj;
 	phar_entry_info *entry_info;
 	phar_archive_data *phar_data;
-	zval *zobj = getThis(), arg1;
+	zval *zobj = ZEND_THIS, arg1;
 
 	if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "p", &fname, &fname_len) == FAILURE) {
 		return;
@@ -4477,7 +4488,7 @@ PHP_METHOD(PharFileInfo, __construct)
 /* }}} */
 
 #define PHAR_ENTRY_OBJECT() \
-	zval *zobj = getThis(); \
+	zval *zobj = ZEND_THIS; \
 	phar_entry_object *entry_obj = (phar_entry_object*)((char*)Z_OBJ_P(zobj) - Z_OBJ_P(zobj)->handlers->offset); \
 	if (!entry_obj->entry) { \
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, \
@@ -4490,7 +4501,7 @@ PHP_METHOD(PharFileInfo, __construct)
  */
 PHP_METHOD(PharFileInfo, __destruct)
 {
-	zval *zobj = getThis();
+	zval *zobj = ZEND_THIS;
 	phar_entry_object *entry_obj = (phar_entry_object*)((char*)Z_OBJ_P(zobj) - Z_OBJ_P(zobj)->handlers->offset);
 
 	if (entry_obj->entry && entry_obj->entry->is_temp_dir) {

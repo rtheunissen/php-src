@@ -260,7 +260,7 @@ typedef struct _zend_oparray_context {
 /* User class has methods with static variables           |     |     |     */
 #define ZEND_HAS_STATIC_IN_METHODS       (1 << 15) /*  X  |     |     |     */
 /*                                                        |     |     |     */
-/* Function Flags (unused: 26...30)                       |     |     |     */
+/* Function Flags (unused: 28...30)                       |     |     |     */
 /* ==============                                         |     |     |     */
 /*                                                        |     |     |     */
 /* deprecation flag                                       |     |     |     */
@@ -309,6 +309,12 @@ typedef struct _zend_oparray_context {
 /*                                                        |     |     |     */
 /* internal function is allocated at arena (int only)     |     |     |     */
 #define ZEND_ACC_ARENA_ALLOCATED         (1 << 25) /*     |  X  |     |     */
+/*                                                        |     |     |     */
+/* op_array is a clone of trait method                    |     |     |     */
+#define ZEND_ACC_TRAIT_CLONE             (1 << 26) /*     |  X  |     |     */
+/*                                                        |     |     |     */
+/* op_array is preloaded                                  |     |     |     */
+#define ZEND_ACC_PRELOADED               (1 << 27) /*     |  X  |     |     */
 /*                                                        |     |     |     */
 /* op_array uses strict mode types                        |     |     |     */
 #define ZEND_ACC_STRICT_TYPES            (1 << 31) /*     |  X  |     |     */
@@ -750,8 +756,7 @@ zend_bool zend_handle_encoding_declaration(zend_ast *ast);
 void zend_do_free(znode *op1);
 
 ZEND_API int do_bind_function(zval *lcname);
-ZEND_API int do_bind_class(zval *lcname);
-ZEND_API int do_bind_inherited_class(zval *lcname, zend_class_entry *parent_ce);
+ZEND_API int do_bind_class(zval *lcname, zend_class_entry *parent_ce);
 ZEND_API uint32_t zend_build_delayed_early_binding_list(const zend_op_array *op_array);
 ZEND_API void zend_do_delayed_early_binding(const zend_op_array *op_array, uint32_t first_early_binding_opline);
 
@@ -1039,6 +1044,12 @@ END_EXTERN_C()
 
 /* ignore functions and classes declared in other files */
 #define ZEND_COMPILE_IGNORE_OTHER_FILES			(1<<12)
+
+/* this flag is set when compiler invoked by opcache_compile_file() */
+#define ZEND_COMPILE_WITHOUT_EXECUTION          (1<<13)
+
+/* this flag is set when compiler invoked during preloading */
+#define ZEND_COMPILE_PRELOAD                    (1<<14)
 
 /* The default value for CG(compiler_options) */
 #define ZEND_COMPILE_DEFAULT					ZEND_COMPILE_HANDLE_OP_ARRAY

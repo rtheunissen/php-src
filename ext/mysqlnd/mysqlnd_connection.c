@@ -666,9 +666,13 @@ MYSQLND_METHOD(mysqlnd_conn_data, connect)(MYSQLND_CONN_DATA * conn,
 
 	{
 		const MYSQLND_CSTRING scheme = { transport.s, transport.l };
+		/* This will be overwritten below with a copy, but we can use it during authentication */
+		conn->unix_socket.s = (char *)socket_or_pipe.s;
 		if (FAIL == conn->m->connect_handshake(conn, &scheme, &username, &password, &database, mysql_flags)) {
+			conn->unix_socket.s = NULL;
 			goto err;
 		}
+		conn->unix_socket.s = NULL;
 	}
 
 	{
@@ -1574,7 +1578,7 @@ MYSQLND_METHOD(mysqlnd_conn_data, change_user)(MYSQLND_CONN_DATA * const conn,
 
 	DBG_ENTER("mysqlnd_conn_data::change_user");
 	DBG_INF_FMT("conn=%llu user=%s passwd=%s db=%s silent=%u",
-				conn->thread_id, user?user:"", passwd?"***":"null", db?db:"", (silent == TRUE)?1:0 );
+				conn->thread_id, user?user:"", passwd?"***":"null", db?db:"", silent == TRUE);
 
 	if (PASS != conn->m->local_tx_start(conn, this_func)) {
 		goto end;

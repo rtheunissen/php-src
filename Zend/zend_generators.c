@@ -877,7 +877,7 @@ ZEND_METHOD(Generator, rewind)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_rewind(generator);
 }
@@ -893,7 +893,7 @@ ZEND_METHOD(Generator, valid)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -913,7 +913,7 @@ ZEND_METHOD(Generator, current)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -936,7 +936,7 @@ ZEND_METHOD(Generator, key)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -959,7 +959,7 @@ ZEND_METHOD(Generator, next)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -978,7 +978,7 @@ ZEND_METHOD(Generator, send)
 		Z_PARAM_ZVAL(value)
 	ZEND_PARSE_PARAMETERS_END();
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -1017,7 +1017,7 @@ ZEND_METHOD(Generator, throw)
 
 	Z_TRY_ADDREF_P(exception);
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 
@@ -1052,7 +1052,7 @@ ZEND_METHOD(Generator, getReturn)
 		return;
 	}
 
-	generator = (zend_generator *) Z_OBJ_P(getThis());
+	generator = (zend_generator *) Z_OBJ_P(ZEND_THIS);
 
 	zend_generator_ensure_initialized(generator);
 	if (UNEXPECTED(EG(exception))) {
@@ -1067,22 +1067,6 @@ ZEND_METHOD(Generator, getReturn)
 	}
 
 	ZVAL_COPY(return_value, &generator->retval);
-}
-/* }}} */
-
-/* {{{ proto Generator::__wakeup()
- * Throws an Exception as generators can't be serialized */
-ZEND_METHOD(Generator, __wakeup)
-{
-	/* Just specifying the zend_class_unserialize_deny handler is not enough,
-	 * because it is only invoked for C unserialization. For O the error has
-	 * to be thrown in __wakeup. */
-
-	if (zend_parse_parameters_none() == FAILURE) {
-		return;
-	}
-
-	zend_throw_exception(NULL, "Unserialization of 'Generator' is not allowed", 0);
 }
 /* }}} */
 
@@ -1212,7 +1196,6 @@ static const zend_function_entry generator_functions[] = {
 	ZEND_ME(Generator, send,     arginfo_generator_send, ZEND_ACC_PUBLIC)
 	ZEND_ME(Generator, throw,    arginfo_generator_throw, ZEND_ACC_PUBLIC)
 	ZEND_ME(Generator, getReturn,arginfo_generator_void, ZEND_ACC_PUBLIC)
-	ZEND_ME(Generator, __wakeup, arginfo_generator_void, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 

@@ -1073,31 +1073,7 @@ ZEND_API int do_bind_function(zval *lcname) /* {{{ */
 }
 /* }}} */
 
-ZEND_API int do_bind_class(zval *lcname) /* {{{ */
-{
-	zend_class_entry *ce;
-	zval *rtd_key, *zv;
-
-	rtd_key = lcname + 1;
-	zv = zend_hash_find_ex(EG(class_table), Z_STR_P(rtd_key), 1);
-	if (UNEXPECTED(!zv)) {
-		zend_error_noreturn(E_COMPILE_ERROR, "Cannot declare  %s, because the name is already in use", Z_STRVAL_P(lcname));
-		return FAILURE;
-	}
-
-	ce = (zend_class_entry*)Z_PTR_P(zv);
-	zv = zend_hash_set_bucket_key(EG(class_table), (Bucket*)zv, Z_STR_P(lcname));
-	if (UNEXPECTED(!zv)) {
-		zend_error_noreturn(E_COMPILE_ERROR, "Cannot declare %s %s, because the name is already in use", zend_get_object_type(ce), ZSTR_VAL(ce->name));
-		return FAILURE;
-	}
-
-	zend_do_link_class(ce, NULL);
-	return SUCCESS;
-}
-/* }}} */
-
-ZEND_API int do_bind_inherited_class(zval *lcname, zend_class_entry *parent_ce) /* {{{ */
+ZEND_API int do_bind_class(zval *lcname, zend_class_entry *parent_ce) /* {{{ */
 {
 	zend_class_entry *ce;
 	zval *rtd_key, *zv;
@@ -1192,7 +1168,7 @@ ZEND_API void zend_do_delayed_early_binding(const zend_op_array *op_array, uint3
 			const zend_op *opline = &op_array->opcodes[opline_num];
 			zval *parent_name = RT_CONSTANT(opline, opline->op2);
 			if ((ce = zend_lookup_class_ex(Z_STR_P(parent_name), Z_STR_P(parent_name + 1), 0)) != NULL) {
-				do_bind_inherited_class(RT_CONSTANT(&op_array->opcodes[opline_num], op_array->opcodes[opline_num].op1), ce);
+				do_bind_class(RT_CONSTANT(&op_array->opcodes[opline_num], op_array->opcodes[opline_num].op1), ce);
 			}
 			opline_num = op_array->opcodes[opline_num].result.opline_num;
 		}
@@ -1600,7 +1576,7 @@ int ZEND_FASTCALL zendlex(zend_parser_stack_elem *elem) /* {{{ */
 
 ZEND_API void zend_initialize_class_data(zend_class_entry *ce, zend_bool nullify_handlers) /* {{{ */
 {
-	zend_bool persistent_hashes = (ce->type == ZEND_INTERNAL_CLASS) ? 1 : 0;
+	zend_bool persistent_hashes = ce->type == ZEND_INTERNAL_CLASS;
 
 	ce->refcount = 1;
 	ce->ce_flags = ZEND_ACC_CONSTANTS_UPDATED;
@@ -4727,6 +4703,10 @@ void zend_compile_foreach(zend_ast *ast) /* {{{ */
 
 	zend_compile_stmt(stmt_ast);
 
+	/* Place JMP and FE_FREE on the line where foreach starts. It would be
+	 * better to use the end line, but this information is not available
+	 * currently. */
+	CG(zend_lineno) = ast->lineno;
 	zend_emit_jump(opnum_fetch);
 
 	opline = &CG(active_op_array)->opcodes[opnum_reset];
